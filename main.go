@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"os"
+	"runtime"
 	"time"
 
 	"github.com/openmind13/memcache/memcache"
@@ -11,20 +12,21 @@ import (
 func main() {
 	fmt.Printf("memcache\n")
 
+	go printNumGorutines()
+
 	cache := memcache.New(5*time.Minute, 10*time.Minute)
-	cache.Add("mykey", "myvalue", 5*time.Minute)
-	cache.Add("second", "second value", 5*time.Minute)
-	cache.Add("third", "test test", time.Second)
 
-	fmt.Println(cache.Exist("third"))
-	fmt.Println(cache.Count())
+	cache.Add("test", "hello", 5*time.Second)
+	cache.Add("first", "azazaza", 10*time.Minute)
 
-	time.Sleep(6 * time.Second)
-	fmt.Println(cache.Count())
-	data, err := cache.Get("third")
-	if err != nil {
-		log.Fatal(err)
+	cache.Destroy()
+
+	os.Exit(0)
+}
+
+func printNumGorutines() {
+	for {
+		time.Sleep(1 * time.Second)
+		fmt.Println(runtime.NumGoroutine())
 	}
-
-	fmt.Println(data)
 }

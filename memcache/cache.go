@@ -21,12 +21,15 @@ type Cache struct {
 
 	count uint
 	data  map[string]item
+
+	quitChan chan bool
 }
 
 // item struct
 type item struct {
 	value      interface{}
 	createdAt  time.Time
+	expireAt   time.Time
 	expiration int64
 }
 
@@ -36,15 +39,24 @@ func New(defaultExpiration, cleanupInterval time.Duration) *Cache {
 	cache := Cache{
 		data:              data,
 		defaultExpiration: 10 * time.Second,
-		cleanupInterval:   20 * time.Second,
+		cleanupInterval:   10 * time.Second,
 		count:             0,
 	}
 
 	if cache.cleanupInterval > 0 {
-		cache.GC()
+		go cache.gcCollect()
 	}
 
 	return &cache
+}
+
+// Destroy - remove all items from cache and stop it
+func (cache *Cache) Destroy() error {
+	cache.data = nil
+	cache.count = 0
+	cache.quitChan <- true
+
+	return nil
 }
 
 // Add new value into cache
@@ -72,9 +84,8 @@ func (cache *Cache) Add(key string, value interface{}, duration time.Duration) {
 // Get value from cache by key
 func (cache *Cache) Get(key string) (interface{}, error) {
 	cache.mutex.RLock()
-	defer cache.mutex.RUnlock()
-
 	item, found := cache.data[key]
+	cache.mutex.RUnlock()
 	if !found {
 		return nil, errItemNotFound
 	}
@@ -108,8 +119,8 @@ func (cache *Cache) Count() uint {
 	return cache.count
 }
 
-// Exist check exist item or not
-func (cache *Cache) Exist(key string) bool {
+// IsExist check exist item or not
+func (cache *Cache) IsExist(key string) bool {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
 
@@ -117,21 +128,18 @@ func (cache *Cache) Exist(key string) bool {
 	return found
 }
 
-// GC start cleaning cache
-func (cache *Cache) GC() {
-	go cache.gc()
-}
-
-func (cache *Cache) gc() {
+// gc
+func (cache *Cache) gcCollect() {
 	for {
-		<-time.After(cache.cleanupInterval)
-
-		if cache.data == nil {
+		// <-time.After(cache.cleanupInterval)
+		time.Sleep(1 * time.Second)
+		select {
+		case <-cache.quitChan:
 			return
-		}
-
-		if keys := cache.expiredKeys(); len(keys) != 0 {
-			cache.clearExpiredItems(keys)
+		default:
+			if keys := cache.expiredKeys(); len(keys) != 0 {
+				cache.clearExpiredItems(keys)
+			}
 		}
 	}
 }
