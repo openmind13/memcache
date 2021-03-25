@@ -1,6 +1,6 @@
-### Memcache
+# Memcache
 
-Usage
+## Usage
 
 ```bash
 cache := memcache.New(5*time.Minute, 10*time.Minute)

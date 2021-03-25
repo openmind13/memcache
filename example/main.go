@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/openmind13/memcache/memcache"
+	"github.com/openmind13/memcache"
 )
 
 func main() {

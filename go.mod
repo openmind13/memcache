@@ -1,3 +1,3 @@
 module github.com/openmind13/memcache
 
-go 1.14
+go 1.16
